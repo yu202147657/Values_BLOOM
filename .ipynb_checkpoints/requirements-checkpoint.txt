@@ -1,0 +1,6 @@
+#pip install git+https://github.com/huggingface/transformers@main
+torch
+evaluate
+datasets
+omegaconf
+transformers
