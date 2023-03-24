@@ -1,4 +1,37 @@
 import pandas as pd
+import pyreadstat
+
+def process_full_values():
+    questions = pd.read_csv('data/values_questions.csv', encoding='utf-8', index_col=False)
+    df = pd.read_csv('data/arguments-training.tsv', encoding='utf-8', sep='\t', index_col=False)
+    labels = pd.read_csv('data/labels-training.tsv', encoding='utf-8', sep='\t', index_col=False)
+    #level1 = pd.read_csv('data/level1-labels-training.tsv', encoding='utf-8', sep='\t', index_col=False)
+
+    df = pd.merge(df, labels, on='Argument ID', how='inner')
+    df = pd.merge(df, questions, on='Conclusion', how='left')
+    df.to_csv('data/full_values.csv', index=False, encoding='utf-8')
+    
+def process_full_values_level_1():
+    questions = pd.read_csv('data/values_questions.csv', encoding='utf-8', index_col=False)
+    df = pd.read_csv('data/arguments-training.tsv', encoding='utf-8', sep='\t', index_col=False)
+    labels = pd.read_csv('data/level1-labels-training.tsv', encoding='utf-8', sep='\t', index_col=False)
+
+    df = pd.merge(df, labels, on='Argument ID', how='inner')
+    df = pd.merge(df, questions, on='Conclusion', how='left')
+    df.to_csv('data/full_values_level_1.csv', index=False, encoding='utf-8')
+
+def process_values():
+    df = pd.read_csv('data/arguments-training.tsv', sep='\t', encoding=
+                     'utf-8')
+
+    #keep only the unique conclusions
+    df = df.drop_duplicates(subset=['Conclusion'])
+    df.to_csv('data/values.csv', index=False, encoding='utf-8')
+    
+def process_pew():
+
+    df, meta = pyreadstat.read_sav('data/ATP W93.sav')
+    df.to_csv('data/pew.csv', encoding='utf-8', index=False)
 
 def process_winogender():
     """drop neutral gender for binary bias evaluation"""
@@ -44,4 +77,7 @@ def process_winogender():
 
     df.to_csv('data/winogender.csv', index=False, encoding='utf-8')
     
-process_winogender()
+process_full_values()
+process_full_values_level_1()
+#process_values()
+#process_winogender()
