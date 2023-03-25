@@ -25,9 +25,12 @@ def create_prompt(question, premises):
     return prompt
             
     
-def gen_output(prompt):
+def gen_output(prompt, model_name, lbls_map):
     """Takes in prompt
     Returns dictionary of probabilities for responses"""
+    
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForCausalLM.from_pretrained(model_name)
     
     prompt_text = prompt#question.get_natural_prompt()
     inputs = tokenizer(prompt_text, return_tensors="pt")
@@ -75,7 +78,8 @@ def get_alphabet_list(num_letters):
     return list(alphabet[:num_letters])
 
 
-def select_premises(question, premises):
+def select_premises(question, premises, model_name, lbls_map):
+    
     #initial batch of 4
     batch = premises[:4]
     num_premises = len(premises)
@@ -93,7 +97,7 @@ def select_premises(question, premises):
             batch = premises[i:i+batch_size]
             
             prompt = create_prompt(question, batch)
-            probs_dict = gen_output(prompt)
+            probs_dict = gen_output(prompt, model_name, lbls_map)
             letter, winning_premise = get_first_valid_choice(len(batch), batch, probs_dict)
         else:
             batch = premises[i:i+batch_size]
@@ -102,7 +106,7 @@ def select_premises(question, premises):
             batch.insert(index, winning_premise)
 
             prompt = create_prompt(question, batch)
-            probs_dict = gen_output(prompt)
+            probs_dict = gen_output(prompt, model_name, lbls_map)
             letter, winning_premise = get_first_valid_choice(len(batch), batch, probs_dict)
         #update round
         i+=batch_size
@@ -137,10 +141,10 @@ def get_mcq(model_name):
         for j in range(0, 5):
 
             if len(premises) > 4:
-                winning_premise = select_premises(question, premises)
+                winning_premise = select_premises(question, premises, model_name, lbls_map)
             else:
                 prompt = create_prompt(question, premises)
-                probs_dict = gen_output(prompt)
+                probs_dict = gen_output(prompt, model_name, lbls_map)
                 letter, winning_premise = get_first_valid_choice(len(premises), premises, probs_dict)
 
             winning_premises_5.append(winning_premise)
