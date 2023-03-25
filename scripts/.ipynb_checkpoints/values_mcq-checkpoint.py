@@ -5,6 +5,7 @@ import pandas as pd
 
 import string
 import random
+from collections import Counter
 
 
 tokenizer = AutoTokenizer.from_pretrained("gpt2")
@@ -100,7 +101,7 @@ def select_premises(question, premises):
         # Create the batch
         if batch_size == 4:
             batch = premises[i:i+batch_size]
-
+            
             prompt = create_prompt(question, batch)
             probs_dict = gen_output(prompt)
             letter, winning_premise = get_first_valid_choice(len(batch), batch, probs_dict)
@@ -113,7 +114,6 @@ def select_premises(question, premises):
             prompt = create_prompt(question, batch)
             probs_dict = gen_output(prompt)
             letter, winning_premise = get_first_valid_choice(len(batch), batch, probs_dict)
-
         #update round
         i+=batch_size
         num_premises -= batch_size - 1
@@ -126,15 +126,25 @@ def select_premises(question, premises):
 #iterate thro questions in df
 for question in list(set(df.Question.values)):
 
-    prompt = f'{question}?'
-
     sub_df = df[df['Question'] == question]
     premises = sub_df.Premise.values
-    #indices = df[df['Premise'].isin(premises)].index
-    premises = ['You dumb', 'you stupid', 'you crazy', 'you pantaloon', 'you silly']
-    if len(premises) > 4:
-        winning_premise = select_premises(question, premises)
-    else:
-        prompt = create_prompt(question, premises)
-        probs_dict = gen_output(prompt)
-        letter, winning_premise = get_first_valid_choice(len(premises), premises, probs_dict)
+    indices = df[df['Premise'].isin(premises)].index
+    #premises = ['You dumb', 'you stupid', 'you crazy', 'you pantaloon', 'you silly']
+    
+    winning_premises_5 = []
+    #run 5 times and get most frequent
+    for j in range(0, 5):
+    
+        if len(premises) > 4:
+            winning_premise = select_premises(question, premises)
+        else:
+            prompt = create_prompt(question, premises)
+            probs_dict = gen_output(prompt)
+            letter, winning_premise = get_first_valid_choice(len(premises), premises, probs_dict)
+
+        winning_premises_5.append(winning_premise)
+    
+    #get most frequent item in list
+    most_frequent = Counter(winning_premises_5).most_common(1)[0][0]
+    df.loc[df.index.isin(indices), 'winning_premise'] = most_frequent
+    
