@@ -8,16 +8,6 @@ import random
 from collections import Counter
 
 
-tokenizer = AutoTokenizer.from_pretrained("gpt2")
-model = AutoModelForCausalLM.from_pretrained("gpt2")
-
-lbls_map = {v: k for k, v in tokenizer.vocab.items()}
-
-prompt = 'Should abortion be legal? A. Yes, because it prioritizes womens choice, B. No because it is murder C. Yes because it is not a life. Answer:'
-
-df = pd.read_csv('data/full_values.csv', encoding='utf-8', index_col=False)
-df = df.sample(1)
-
 def create_prompt(question, premises):
     """ Assigns letters and format prompts
     Takes in question and max of 4 premises """
@@ -123,28 +113,42 @@ def select_premises(question, premises):
 #if that letter, get the associated premise. then calculate distribution of those values
 #do it five times, see which one selected most. get ppa for it.
 
-#iterate thro questions in df
-for question in list(set(df.Question.values)):
+def get_mcq(model_name):
+    """Get winning premise for 5 runs. Highest probability premise returned
+    from multiple choice prompt"""
 
-    sub_df = df[df['Question'] == question]
-    premises = sub_df.Premise.values
-    indices = df[df['Premise'].isin(premises)].index
-    #premises = ['You dumb', 'you stupid', 'you crazy', 'you pantaloon', 'you silly']
-    
-    winning_premises_5 = []
-    #run 5 times and get most frequent
-    for j in range(0, 5):
-    
-        if len(premises) > 4:
-            winning_premise = select_premises(question, premises)
-        else:
-            prompt = create_prompt(question, premises)
-            probs_dict = gen_output(prompt)
-            letter, winning_premise = get_first_valid_choice(len(premises), premises, probs_dict)
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForCausalLM.from_pretrained(model_name)
 
-        winning_premises_5.append(winning_premise)
+    lbls_map = {v: k for k, v in tokenizer.vocab.items()}
+
+    df = pd.read_csv('data/full_values.csv', encoding='utf-8', index_col=False)
     
-    #get most frequent item in list
-    most_frequent = Counter(winning_premises_5).most_common(1)[0][0]
-    df.loc[df.index.isin(indices), 'winning_premise'] = most_frequent
+    #iterate thro questions in df
+    for question in list(set(df.Question.values)):
+
+        sub_df = df[df['Question'] == question]
+        premises = sub_df.Premise.values
+        indices = df[df['Premise'].isin(premises)].index
+        #premises = ['You dumb', 'you stupid', 'you crazy', 'you pantaloon', 'you silly']
+
+        winning_premises_5 = []
+        #run 5 times and get most frequent
+        for j in range(0, 5):
+
+            if len(premises) > 4:
+                winning_premise = select_premises(question, premises)
+            else:
+                prompt = create_prompt(question, premises)
+                probs_dict = gen_output(prompt)
+                letter, winning_premise = get_first_valid_choice(len(premises), premises, probs_dict)
+
+            winning_premises_5.append(winning_premise)
+
+        #get most frequent item in list
+        most_frequent = Counter(winning_premises_5).most_common(1)[0][0]
+        df.loc[df.index.isin(indices), 'winning_premise'] = most_frequent
+
+    df.to_csv(f'results/{model_name}_values_mcq.csv', index=False, encoding='utf-8', sep='\t')
     
+get_mcq("gpt2")
