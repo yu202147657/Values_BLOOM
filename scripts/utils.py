@@ -1,5 +1,9 @@
 import pandas as pd
 import pyreadstat
+import matplotlib.pyplot as plt
+
+from scipy.stats import ttest_ind, chisquare
+
 
 def process_full_values():
     questions = pd.read_csv('data/values_questions.csv', encoding='utf-8', index_col=False)
@@ -76,8 +80,63 @@ def process_winogender():
     df = df.drop_duplicates()
 
     df.to_csv('data/winogender.csv', index=False, encoding='utf-8')
+
+def get_value_labels(model_name):
+    """
+    Filter dataset to only have the premises with the max probabilities
+    Then only keep the probabilities that are greater than chance for each question/
+    premises combination
+    """
     
-process_full_values()
-process_full_values_level_1()
+    df = pd.read_csv(f'results/{model_name}_values_entropy.csv', encoding='utf-8', sep='\t', index_col=False)
+    df = df[df['Premise'] == df['max_completion']]
+    df.to_csv(f'results/{model_name}_prob_values.csv', index=False, encoding='utf-8')
+    
+    df = df[df['max_prob'] > (1/df['num_premises'])]
+    return df
+    
+
+def get_sum_series(df):
+    
+    sums = df.iloc[:, df.columns.get_loc('Self-direction: action'):df.columns.get_loc('Universalism: objectivity')+1].sum(axis=0)
+    
+    return sums
+    
+def plot_histogram(model_name):
+    
+    df = pd.read_csv(f'results/{model_name}_values_entropy.csv', encoding='utf-8', sep='\t', index_col=False)
+    df_sums = get_sum_series(df)
+    df_sums.plot(kind='bar')
+    #plt.hist(df_sums, bins=30)
+    plt.savefig(f'plots/{model_name}_data.png')
+    
+    histogram_df = get_value_labels(model_name)
+    histogram_sums = get_sum_series(histogram_df)
+    
+    #plt.hist(histogram_sums, bins=30)
+    plt.clf()
+    histogram_sums.plot(kind='bar')
+    plt.savefig(f'plots/{model_name}_biases.png')
+    
+    # Perform a two-sample t-test
+    t_statistic, p_value = ttest_ind(df_sums, histogram_sums)
+
+    print('T-test statistic:', t_statistic)
+    print('P-value:', p_value)
+    
+    # Perform chi-squared test
+    model_probs = histogram_sums/sum(histogram_sums)
+    model_counts = model_probs * sum(df_sums)
+    chi2, p = chisquare(df_sums, f_exp=model_counts)
+
+    # Print results
+    print('Chi-squared test statistic:', chi2)
+    print('P-value:', p)
+    
+    
+plot_histogram('EleutherAI/gpt-neo-125M')
+#get_value_labels('EleutherAI/gpt-neo-125M')
+#process_full_values()
+#process_full_values_level_1()
 #process_values()
 #process_winogender()

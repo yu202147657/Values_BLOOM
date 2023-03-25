@@ -89,10 +89,7 @@ for question in list(set(df.Question.values)):
             
     # Aggregate cosine similarities for each argument
     avg_cosine_similarities = np.mean(cosine_similarities, axis=1)
-    if any(abs(x) > 1 for x in avg_cosine_similarities):
-        print("At least one element in the list is greater than 1.", avg_cosine_similarities)
-    else:
-        pass
+
     df.loc[df.index.isin(indices), 'cosine_similarity'] = avg_cosine_similarities
     
 df.to_csv('data/full_values_cosine_similarity.csv', index=False, encoding='utf-8')
