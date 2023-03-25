@@ -103,7 +103,7 @@ def select_premises(question, premises, model_name, lbls_map):
             batch = premises[i:i+batch_size]
             #get index to randomly insert winning premise in
             index = random.randint(0, len(batch))
-            batch.insert(index, winning_premise)
+            batch = np.insert(batch, index, winning_premise)
 
             prompt = create_prompt(question, batch)
             probs_dict = gen_output(prompt, model_name, lbls_map)
