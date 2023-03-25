@@ -88,7 +88,7 @@ def get_value_labels(model_name):
     premises combination
     """
     
-    df = pd.read_csv(f'results/{model_name}_values_entropy.csv', encoding='utf-8', sep='\t', index_col=False)
+    df = pd.read_csv(f'results/{model_name}_full_values_entropy.csv', encoding='utf-8', sep='\t', index_col=False)
     df = df[df['Premise'] == df['max_completion']]
     df.to_csv(f'results/{model_name}_prob_values.csv', index=False, encoding='utf-8')
     
@@ -104,7 +104,7 @@ def get_sum_series(df):
     
 def plot_histogram(model_name):
     
-    df = pd.read_csv(f'results/{model_name}_values_entropy.csv', encoding='utf-8', sep='\t', index_col=False)
+    df = pd.read_csv(f'results/{model_name}_full_values_entropy.csv', encoding='utf-8', sep='\t', index_col=False)
     df_sums = get_sum_series(df)
     df_sums.plot(kind='bar')
     #plt.hist(df_sums, bins=30)

@@ -79,11 +79,19 @@ def get_entropy(model_name):
         
         #add entropy to the premises in each question 
         #(entropy is same for each premise/question combination)
-        df.loc[df.index.isin(indices), 'entropy'] = np.round(np.mean(entropy_lst), 3)
+        df.loc[df.index.isin(indices), 'entropy'] = np.mean(entropy_lst)
         df.loc[df.index.isin(indices), 'max_prob'] = max_prob
         df.loc[df.index.isin(indices), 'max_completion'] = max_completion
         df.loc[df.index.isin(indices), 'num_premises'] = len(indices)
-        
+    
+    #write df with entropy for each premise
+    df.to_csv(f'results/{model_name}_full_values_entropy.csv', index=False, encoding='utf-8', sep='\t')
+    
+    #get avg entropy for entire dataset
+    #first drop duplicates bc entropy is unique per Q
+    df = df.drop_duplicates(subset=['Question'])
+    avg_entropy = df['entropy'].mean()
+    df = pd.DataFrame({'entropy': [np.round(avg_entropy, 3)]})
     df.to_csv(f'results/{model_name}_values_entropy.csv', index=False, encoding='utf-8', sep='\t')
 
         
