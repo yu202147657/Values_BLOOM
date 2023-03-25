@@ -15,6 +15,7 @@ lbls_map = {v: k for k, v in tokenizer.vocab.items()}
 prompt = 'Should abortion be legal? A. Yes, because it prioritizes womens choice, B. No because it is murder C. Yes because it is not a life. Answer:'
 
 df = pd.read_csv('data/full_values.csv', encoding='utf-8', index_col=False)
+df = df.sample(1)
 
 def create_prompt(question, premises):
     """ Assigns letters and format prompts
@@ -84,34 +85,39 @@ def get_alphabet_list(num_letters):
 
 
 def select_premises(question, premises):
+    #initial batch of 4
+    batch = premises[:4]
     num_premises = len(premises)
     i = 0
     while num_premises > 1:
-        # get a batch of premises
-        if num_premises >= 4:
-            batch_size = 4
-        else:
-            batch_size = num_premises
-        batch = premises[i:i+batch_size]
-        
-        prompt = create_prompt(question, batch)
-        probs_dict = gen_output(prompt)
-        letter, winning_premise = get_first_valid_choice(len(batch), batch, probs_dict)
-        
-        # randomly add winning premise to the next batch
-        if num_premises >= 3:
-            next_batch = premises[i+batch_size:i+batch_size+3]
-            next_batch.insert(random.randint(0, 2), winning_premise)
-        else:
-            next_batch = premises[i+batch_size:i+batch_size+2]
-            next_batch.insert(random.randint(0, 1), winning_premise)
-        
-        # update premises and index
-        premises[i:i+batch_size+1] = batch + next_batch
-        i += batch_size
-        num_premises -= batch_size
-    return premises[0]
+        # Get the batch size for this iteration
+        batch_size = 4 if i == 0 else 3
 
+        # Check if there are enough premises remaining for another batch
+        if num_premises - batch_size < 0:
+            batch_size = num_premises
+
+        # Create the batch
+        if batch_size == 4:
+            batch = premises[i:i+batch_size]
+
+            prompt = create_prompt(question, batch)
+            probs_dict = gen_output(prompt)
+            letter, winning_premise = get_first_valid_choice(len(batch), batch, probs_dict)
+        else:
+            batch = premises[i:i+batch_size]
+            #get index to randomly insert winning premise in
+            index = random.randint(0, len(batch))
+            batch.insert(index, winning_premise)
+
+            prompt = create_prompt(question, batch)
+            probs_dict = gen_output(prompt)
+            letter, winning_premise = get_first_valid_choice(len(batch), batch, probs_dict)
+
+        #update round
+        i+=batch_size
+        num_premises -= batch_size - 1
+    return winning_premise
 
 
 #if that letter, get the associated premise. then calculate distribution of those values
@@ -127,52 +133,8 @@ for question in list(set(df.Question.values)):
     #indices = df[df['Premise'].isin(premises)].index
     premises = ['You dumb', 'you stupid', 'you crazy', 'you pantaloon', 'you silly']
     if len(premises) > 4:
-        #initial batch of 4
-        batch = premises[:4]
-        num_premises = len(premises)
-        i = 0
-        while num_premises > 1:
-            # Get the batch size for this iteration
-            batch_size = 4 if num_premises >= 4 else 3
-
-            # Check if there are enough premises remaining for another batch
-            if num_premises - batch_size < 0:
-                batch_size = num_premises
-
-            # Create the batch
-            batch = premises[i:i+batch_size]
-            print(batch)
-        
-            prompt = create_prompt(question, batch)
-            probs_dict = gen_output(prompt)
-            letter, winning_premise = get_first_valid_choice(len(batch), batch, probs_dict)
-            
-            num_premises -= batch_size - 1
-            print(num_premises)
-
-        for i in range(4, len(premises)+1, 3):
-            #create batch of 3
-            batch = premises[i:i+3]
-            # Generate a random index to insert the winning premise
-            index = random.randint(0, len(batch))
-            # Insert the winning premise at the random index
-            batch.insert(index, winning_premise)
-            print(batch)
-            prompt = create_prompt(question, batch)
-            probs_dict = gen_output(prompt)
-            letter, winning_premise = get_first_valid_choice(len(batch), batch, probs_dict)
-
-
-        
-        #on first pass, batch 4, 
-        #yield winning choice
-        #on second pass, get winning choice randomly in list with other 3. 
-        #select_premises(question, premises)
+        winning_premise = select_premises(question, premises)
     else:
         prompt = create_prompt(question, premises)
         probs_dict = gen_output(prompt)
         letter, winning_premise = get_first_valid_choice(len(premises), premises, probs_dict)
-        
-        
-    #if len(premises) > 4:
-        #round_robin(premises)
