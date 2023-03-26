@@ -6,6 +6,8 @@ import pandas as pd
 import string
 import random
 from collections import Counter
+import math
+import itertools
 
 
 def create_prompt(question, premises):
@@ -84,7 +86,7 @@ def select_premises(question, premises, model_name, lbls_map):
     batch = premises[:4]
     num_premises = len(premises)
     i = 0
-    while num_premises > 1:
+    while num_premises > 0:
         # Get the batch size for this iteration
         batch_size = 4 if i == 0 else 3
 
@@ -96,21 +98,23 @@ def select_premises(question, premises, model_name, lbls_map):
         if batch_size == 4:
             batch = premises[i:i+batch_size]
             
-            prompt = create_prompt(question, batch)
+            prompt = create_prompt(question, list(batch))
             probs_dict = gen_output(prompt, model_name, lbls_map)
-            letter, winning_premise = get_first_valid_choice(len(batch), batch, probs_dict)
+            letter, winning_premise = get_first_valid_choice(len(batch), list(batch), probs_dict)
         else:
             batch = premises[i:i+batch_size]
             #get index to randomly insert winning premise in
             index = random.randint(0, len(batch))
             batch = np.insert(batch, index, winning_premise)
-
-            prompt = create_prompt(question, batch)
+            
+            prompt = create_prompt(question, list(batch))
             probs_dict = gen_output(prompt, model_name, lbls_map)
-            letter, winning_premise = get_first_valid_choice(len(batch), batch, probs_dict)
+            letter, winning_premise = get_first_valid_choice(len(batch), list(batch), probs_dict)
+
         #update round
         i+=batch_size
-        num_premises -= batch_size - 1
+        num_premises -= batch_size
+        print(i, num_premises)
     return winning_premise
 
 
@@ -133,25 +137,52 @@ def get_mcq(model_name):
 
         sub_df = df[df['Question'] == question]
         premises = sub_df.Premise.values
+        print(len(premises), question)
         indices = df[df['Premise'].isin(premises)].index
         #premises = ['You dumb', 'you stupid', 'you crazy', 'you pantaloon', 'you silly']
 
-        winning_premises_5 = []
+        winning_premises = []
         #run 5 times and get most frequent
-        for j in range(0, 5):
+        
 
-            if len(premises) > 4:
-                winning_premise = select_premises(question, premises, model_name, lbls_map)
-            else:
-                prompt = create_prompt(question, premises)
+        if len(premises) > 4:
+            num_it = math.factorial(4)
+            
+            seen_shufflings = set()
+            
+            for j in range (0, num_it):
+                #iterating thro 24, not entire ordering, bc too many combinations to do all permutations
+                #instead shuffle, but keep track to avoid repeating shuffles
+                shuffle = tuple(random.sample(premises.tolist(), len(premises)))
+                if shuffle not in seen_shufflings:
+                    seen_shufflings.add(shuffle)
+                    premises_shuffled = list(shuffle)
+                    #do function
+                    winning_premise = select_premises(question, premises_shuffled, model_name, lbls_map)
+                    winning_premises.append(winning_premise)
+                else:
+                    # shuffle has already been seen, try again
+                    continue
+        else:
+            num_it = math.factorial(len(premises))
+            #iterates through every unique combination of premises
+            combinations = itertools.permutations(premises)
+            for premises in combinations:
+                prompt = create_prompt(question, list(premises))
                 probs_dict = gen_output(prompt, model_name, lbls_map)
-                letter, winning_premise = get_first_valid_choice(len(premises), premises, probs_dict)
+                letter, winning_premise = get_first_valid_choice(len(premises), list(premises), probs_dict)
+                winning_premises.append(winning_premise)
 
-            winning_premises_5.append(winning_premise)
+        #get most frequent item in list, and num times it occurs
+        counter = Counter(winning_premises)
+        most_frequent = counter.most_common(1)[0][0]
+        num_most_frequent = counter[most_frequent]
 
-        #get most frequent item in list
-        most_frequent = Counter(winning_premises_5).most_common(1)[0][0]
+        
         df.loc[df.index.isin(indices), 'winning_premise'] = most_frequent
+        df.loc[df.index.isin(indices), 'num_it'] = num_it
+        df.loc[df.index.isin(indices), 'num_premises'] = len(premises)
+        df.loc[df.index.isin(indices), 'num_most_frequent'] = num_most_frequent
 
     df.to_csv(f'results/{model_name}_values_mcq.csv', index=False, encoding='utf-8', sep='\t')
     
