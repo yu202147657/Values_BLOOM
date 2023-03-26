@@ -146,7 +146,7 @@ def get_mcq(model_name):
         
 
         if len(premises) > 4:
-            num_it = math.factorial(4)
+            num_it = 5 #math.factorial(4)
             
             seen_shufflings = set()
             
@@ -164,7 +164,7 @@ def get_mcq(model_name):
                     # shuffle has already been seen, try again
                     continue
         else:
-            num_it = math.factorial(len(premises))
+            num_it = 5 #math.factorial(len(premises))
             #iterates through every unique combination of premises
             combinations = itertools.permutations(premises)
             for premises in combinations:
