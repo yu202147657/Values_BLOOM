@@ -1,6 +1,7 @@
 import pandas as pd
 import pyreadstat
 import matplotlib.pyplot as plt
+import textwrap
 
 from scipy.stats import ttest_ind, chisquare
 
@@ -88,11 +89,14 @@ def get_value_labels(model_name):
     premises combination
     """
     
-    df = pd.read_csv(f'results/{model_name}_full_values_entropy.csv', encoding='utf-8', sep='\t', index_col=False)
-    df = df[df['Premise'] == df['max_completion']]
-    df.to_csv(f'results/{model_name}_prob_values.csv', index=False, encoding='utf-8')
+    #df = pd.read_csv(f'results/{model_name}_full_values_entropy.csv', encoding='utf-8', sep='\t', index_col=False)
+    #df = df[df['Premise'] == df['max_completion']]
+
+    df = pd.read_csv(f'results/{model_name}_values_mcq.csv', encoding='utf-8', sep='\t', index_col=False)
+    df = df[df['Premise'] == df['winning_premise']]
+    #df.to_csv(f'results/{model_name}_prob_values.csv', index=False, encoding='utf-8')
     
-    df = df[df['max_prob'] > (1/df['num_premises'])]
+    #df = df[df['max_prob'] > (1/df['num_premises'])]
     return df
     
 
@@ -102,21 +106,17 @@ def get_sum_series(df):
     
     return sums
     
-def plot_histogram(model_name):
+def plot_values(model_name):
     
     df = pd.read_csv(f'results/{model_name}_full_values_entropy.csv', encoding='utf-8', sep='\t', index_col=False)
+    
     df_sums = get_sum_series(df)
-    df_sums.plot(kind='bar')
-    #plt.hist(df_sums, bins=30)
-    plt.savefig(f'plots/{model_name}_data.png')
+    
+    bar(df_sums, model_name)
     
     histogram_df = get_value_labels(model_name)
     histogram_sums = get_sum_series(histogram_df)
-    
-    #plt.hist(histogram_sums, bins=30)
-    plt.clf()
-    histogram_sums.plot(kind='bar')
-    plt.savefig(f'plots/{model_name}_biases.png')
+    bar(histogram_sums, model_name, biases=True)
     
     # Perform a two-sample t-test
     t_statistic, p_value = ttest_ind(df_sums, histogram_sums)
@@ -133,8 +133,40 @@ def plot_histogram(model_name):
     print('Chi-squared test statistic:', chi2)
     print('P-value:', p)
     
+
+def bar(s, model_name, biases=None):
     
-plot_histogram('EleutherAI/gpt-neo-125M')
+    s_freq = s/sum(s)
+    
+    #plt.hist(histogram_sums, bins=30)
+    plt.clf()
+    plt.rc('font', family='Open Sans')
+    fig, ax = plt.subplots(figsize=(6, 6))  # Set figure size
+    
+    sorted_s_freq = s_freq.sort_values(ascending=False)
+    sorted_s_freq.plot(kind='bar', ax=ax)
+    
+    
+    # First, let's remove the top, right and left spines (figure borders)
+    # which really aren't necessary for a bar chart.
+    # Also, make the bottom spine gray instead of black.
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    ax.spines['bottom'].set_color('#DDDDDD')
+
+    ax.set_axisbelow(True)
+    ax.yaxis.grid(True, color='#EEEEEE')
+    ax.xaxis.grid(False)
+    
+    ax.set_ylabel('Proportion Represented', labelpad=15, color='#333333')
+    
+    #plt.subplots_adjust(bottom=0.5)
+    plt.tight_layout()
+    plt.savefig(f'plots/{model_name}_{biases}.png')
+
+
+plot_values('gpt2')
 #get_value_labels('EleutherAI/gpt-neo-125M')
 #process_full_values()
 #process_full_values_level_1()

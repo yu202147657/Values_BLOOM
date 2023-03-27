@@ -104,7 +104,7 @@ def get_mcq(model_name):
         winning_premises = []
         seen_shufflings = set()
         
-        for j in range(0, 5):
+        for j in range(0, 1):
             #shuffle, but keep track to avoid repeating shuffles
             shuffle = tuple(random.sample(premises, len(premises)))
             if shuffle not in seen_shufflings:

@@ -96,6 +96,6 @@ def get_entropy(model_name):
 
         
 
-for model_name in ['EleutherAI/gpt-neo-2.7B']:#'EleutherAI/gpt-neo-125M', 'bigscience/bloom-560M']:
+for model_name in ['gpt2']:#'EleutherAI/gpt-neo-125M', 'bigscience/bloom-560M']:
     print(model_name)
     get_entropy(model_name)
