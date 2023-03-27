@@ -80,7 +80,6 @@ def get_first_valid_choice(letters_lst, premises, probs_dict):
             premise = premises[index]
             return letter, premise
 
-
 def get_mcq(model_name):
     """Get winning premise for 5 runs. Highest probability premise returned
     from multiple choice prompt"""
@@ -146,7 +145,7 @@ def get_mcq(model_name):
     df.to_csv(f'results/{model_name}_values_mcq.csv', index=False, encoding='utf-8', sep='\t')
     
     
-for model_name in ['EleutherAI/gpt-neo-1.3B']:#['EleutherAI/gpt-neox-20b']:#, 'bigscience/bloom-560M', 'EleutherAI/gpt-neo-125M', 'gpt2']:
+for model_name in ['bigscience/bloom-1b7']:#['EleutherAI/gpt-neox-20b']:#, 'bigscience/bloom-560M', 'EleutherAI/gpt-neo-125M', 'gpt2']:
     print(model_name)
     get_mcq(model_name)
 

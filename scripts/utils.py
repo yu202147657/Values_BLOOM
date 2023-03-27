@@ -100,23 +100,42 @@ def get_value_labels(model_name):
     return df
     
 
-def get_sum_series(df):
-    
-    sums = df.iloc[:, df.columns.get_loc('Self-direction: action'):df.columns.get_loc('Universalism: objectivity')+1].sum(axis=0)
+def get_sum_series(df, level_1=None):
+    if level_1:
+        sums = df.iloc[:, df.columns.get_loc('Be creative'):df.columns.get_loc('Have an objective view')+1].sum(axis=0)
+    else: 
+        sums = df.iloc[:, df.columns.get_loc('Self-direction: action'):df.columns.get_loc('Universalism: objectivity')+1].sum(axis=0)
     
     return sums
     
-def plot_values(model_name):
+def lvl_1_xwalk(df):
+    level_1_df = pd.read_csv('data/level1-labels-training.tsv', encoding='utf-8', sep='\t', index_col=False)
+    df = pd.merge(df, level_1_df, on='Argument ID', how='left')
+    
+    return df
+    
+
+def plot_values(model_name, level_1=None):
     
     df = pd.read_csv(f'results/{model_name}_full_values_entropy.csv', encoding='utf-8', sep='\t', index_col=False)
     
-    df_sums = get_sum_series(df)
-    
-    bar(df_sums, model_name)
-    
     histogram_df = get_value_labels(model_name)
-    histogram_sums = get_sum_series(histogram_df)
-    bar(histogram_sums, model_name, biases=True)
+    
+    if level_1:
+        df = lvl_1_xwalk(df)
+        histogram_df = lvl_1_xwalk(histogram_df)
+        
+        df_sums = get_sum_series(df, level_1)
+        bar(df_sums, model_name, level_1=True)
+
+        histogram_sums = get_sum_series(histogram_df, level_1)
+        bar(histogram_sums, model_name, biases=True, level_1=True)
+    else:
+        df_sums = get_sum_series(df, level_1)
+        bar(df_sums, model_name)
+
+        histogram_sums = get_sum_series(histogram_df, level_1)
+        bar(histogram_sums, model_name, biases=True)
     
     # Perform a two-sample t-test
     t_statistic, p_value = ttest_ind(df_sums, histogram_sums)
@@ -134,14 +153,14 @@ def plot_values(model_name):
     print('P-value:', p)
     
 
-def bar(s, model_name, biases=None):
+def bar(s, model_name, biases=None, level_1=None):
     
     s_freq = s/sum(s)
     
     #plt.hist(histogram_sums, bins=30)
     plt.clf()
     plt.rc('font', family='Open Sans')
-    fig, ax = plt.subplots(figsize=(6, 6))  # Set figure size
+    fig, ax = plt.subplots(figsize=(15, 15))  # Set figure size
     
     sorted_s_freq = s_freq.sort_values(ascending=False)
     sorted_s_freq.plot(kind='bar', ax=ax)
@@ -163,10 +182,13 @@ def bar(s, model_name, biases=None):
     
     #plt.subplots_adjust(bottom=0.5)
     plt.tight_layout()
-    plt.savefig(f'plots/{model_name}_{biases}.png')
+    plt.savefig(f'plots/{model_name}_biases_{biases}_lvl1_{level_1}.png')
 
-
-plot_values('gpt2')
+#for model_name in ['gpt2', 'bigscience/bloom-560M', 'bigscience/bloom-1b7', 'EleutherAI/gpt-neo-125M', 'EleutherAI/gpt-neo-1.3B']:
+for model_name in ['gpt2', 'bigscience/bloom-560M', 'EleutherAI/gpt-neo-125M']:
+    print(model_name)
+    plot_values(model_name, level_1=True)
+    plot_values(model_name)
 #get_value_labels('EleutherAI/gpt-neo-125M')
 #process_full_values()
 #process_full_values_level_1()
