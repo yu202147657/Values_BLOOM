@@ -185,5 +185,4 @@ def get_mcq(model_name):
         df.loc[df.index.isin(indices), 'num_most_frequent'] = num_most_frequent
 
     df.to_csv(f'results/{model_name}_values_mcq.csv', index=False, encoding='utf-8', sep='\t')
-    
-get_mcq("gpt2")
+

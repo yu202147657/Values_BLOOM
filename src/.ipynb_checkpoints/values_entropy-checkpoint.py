@@ -94,8 +94,4 @@ def get_entropy(model_name):
     df = pd.DataFrame({'entropy': [np.round(avg_entropy, 3)]})
     df.to_csv(f'results/{model_name}_values_entropy.csv', index=False, encoding='utf-8', sep='\t')
 
-        
-
-for model_name in ['gpt2']:#'EleutherAI/gpt-neo-125M', 'bigscience/bloom-560M']:
-    print(model_name)
-    get_entropy(model_name)
+    
